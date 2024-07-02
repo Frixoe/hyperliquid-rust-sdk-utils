@@ -1,0 +1,18 @@
+[package]
+name = "utils"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.38"
+ethers = {version = "2.0.14", features = ["eip712", "abigen"]}
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros"] }
+hyperliquid_rust_sdk = { path = "../hyperliquid-rust-sdk" }
+tracing = { version = "0.1.40", features = ["log"] }
+tracing-log = "0.2.0"
+tracing-bunyan-formatter = "0.3.9"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+reqwest = { version = "0.12.4", features = ["json"] }
+anyhow = "1.0.86"
+futures = "0.3.30"
