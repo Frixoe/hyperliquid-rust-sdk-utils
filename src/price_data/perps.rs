@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use anyhow::Error;
 use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize};
 
-use crate::types::{Pair, Price};
+use crate::types::{NameToPriceMap, OiCoinToValueMap, Pair, Price};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PerpsPriceData(First, Vec<PairPriceData>);
@@ -16,7 +16,7 @@ impl PerpsPriceData {
         Ok(Price::new_spot(price))
     }
 
-    pub fn get_name_to_price_map(&self) -> HashMap<String, f64> {
+    pub fn get_name_to_price_map(&self) -> NameToPriceMap  {
         let universe = &self.0.universe;
         let prices = &self.1;
 
@@ -24,6 +24,19 @@ impl PerpsPriceData {
 
         for i in 0..prices.len() {
             result.insert(universe[i].name.clone(), prices[i].mark_px);
+        }
+
+        result
+    }
+
+    pub fn get_coin_to_oi_value_map(&self) -> OiCoinToValueMap {
+        let universe = &self.0.universe;
+        let prices = &self.1;
+
+        let mut result: HashMap<String, f64> = HashMap::new();
+
+        for i in 0..prices.len() {
+            result.insert(universe[i].name.clone(), prices[i].open_interest);
         }
 
         result

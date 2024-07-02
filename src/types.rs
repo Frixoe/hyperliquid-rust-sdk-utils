@@ -7,6 +7,7 @@ use serde::{
 
 pub type PriceIsBuyAndAsset = (f64, bool, String);
 pub type NameToPriceMap = HashMap<String, f64>;
+pub type OiCoinToValueMap = HashMap<String, f64>;
 pub const BOLD_START_ANSI: &str = "\x1b[1m";
 pub const BOLD_END_ANSI: &str = "\x1b[0m";
 
