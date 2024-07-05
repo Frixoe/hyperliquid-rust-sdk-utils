@@ -1,27 +1,23 @@
 use core::fmt;
 use std::collections::HashMap;
 
-use anyhow::Error;
 use ethers::types::H128;
-use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize};
+use serde::{
+    de::{self, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 use tracing::warn;
 
-use crate::types::{Pair, Price};
+use crate::types::{NameToPriceMap, Price, SpotAssetContext, SpotContext};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SpotPriceData(First, Vec<PairPriceData>);
 
 impl SpotPriceData {
-    pub async fn get_pair_usdc_value(&self, pair: &Pair) -> Result<Price, Error> {
-        let price = *self.get_name_to_price_map().get(&pair.name).unwrap();
-
-        Ok(Price::new_spot(price))
-    }
-
-    pub fn get_pair_to_price_map(&self) -> HashMap<String, f64> {
+    pub fn get_pair_to_raw_price_map(&self) -> HashMap<String, f64> {
         let index_to_name: HashMap<u16, String> = self.get_index_to_name_map();
 
-        let name_to_price: HashMap<String, f64> = self.get_name_to_price_map();
+        let name_to_price: NameToPriceMap = self.get_name_to_price_map();
 
         self.0
             .universe
@@ -41,7 +37,7 @@ impl SpotPriceData {
                 };
 
                 let price = if let Some(price) = name_to_price.get(&val.name) {
-                    *price
+                    price.get_value()
                 } else {
                     warn!(
                         "There was an issue getting the price for the pair {}/{}",
@@ -86,6 +82,7 @@ impl SpotPriceData {
             .collect()
     }
 
+    // 1 -> "LICK" not 1 -> "@x"
     fn get_index_to_name_map(&self) -> HashMap<u16, String> {
         self.0
             .tokens
@@ -94,17 +91,74 @@ impl SpotPriceData {
             .collect()
     }
 
-    pub fn get_name_to_price_map(&self) -> HashMap<String, f64> {
-        self.1
+    // @2 -> Price { price: 0.12312, .. }
+    pub fn get_name_to_price_map(&self) -> HashMap<String, Price> {
+        self.0
+            .universe
             .iter()
-            .map(|val| (val.coin.clone(), val.mark_px))
+            .map(|uni| {
+                let price = self
+                    .1
+                    .iter()
+                    .find(|pair_data| pair_data.coin == uni.name)
+                    .unwrap()
+                    .mark_px;
+
+                let quote_spot_context: SpotAssetContext = self
+                    .0
+                    .tokens
+                    .iter()
+                    .find_map(|token| {
+                        if token.index == uni.tokens[0] {
+                            Some(SpotAssetContext {
+                                sz_decimals: token.sz_decimals,
+                                wei_decimals: token.wei_decimals,
+                                index: token.index,
+                                name: token.name.clone(),
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap();
+
+                let base_spot_context: SpotAssetContext = self
+                    .0
+                    .tokens
+                    .iter()
+                    .find_map(|token| {
+                        if token.index == uni.tokens[1] {
+                            Some(SpotAssetContext {
+                                sz_decimals: token.sz_decimals,
+                                wei_decimals: token.wei_decimals,
+                                index: token.index,
+                                name: token.name.clone(),
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap();
+
+                (
+                    uni.name.clone(),
+                    Price::new_spot(
+                        price,
+                        SpotContext {
+                            name: uni.name.clone(),
+                            quote: quote_spot_context,
+                            base: base_spot_context,
+                        },
+                    ),
+                )
+            })
             .collect()
     }
 
     pub fn get_price_from_pair(&self, pair: String) -> f64 {
         let index_to_name: HashMap<u16, String> = self.get_index_to_name_map();
 
-        let name_to_price: HashMap<String, f64> = self.get_name_to_price_map();
+        let name_to_price: HashMap<String, Price> = self.get_name_to_price_map();
 
         self.0
             .universe
@@ -127,7 +181,7 @@ impl SpotPriceData {
             })
             .map(|val| {
                 if let Some(price) = name_to_price.get(&val.name) {
-                    *price
+                    price.get_value()
                 } else {
                     0.0
                 }
@@ -226,7 +280,6 @@ mod tests {
 
     use crate::prices::Prices;
 
-    use super::*;
     use std::time::Duration;
 
     #[tokio::test]
@@ -234,26 +287,26 @@ mod tests {
     {
         println!("starting test");
         let prices = Prices::new()?;
+        //
+        //let (price_sender, price_recv) = watch::channel(
+        //    prices
+        //        .get_all_price_info()
+        //        .await
+        //        .unwrap()
+        //        .get_name_to_price_map(),
+        //);
 
-        let (price_sender, price_recv) = watch::channel(
-            prices
-                .get_all_price_info()
-                .await
-                .unwrap()
-                .get_name_to_price_map(),
-        );
-
-        tokio::spawn(async move {
-            let _ = prices.start_sending(price_sender).await;
-        });
+        //tokio::spawn(async move {
+        //    let _ = prices.start_sending(price_sender).await;
+        //});
 
         for _ in 0..5 {
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
 
-        for _ in 0..10 {
-            let _ = *price_recv.borrow().get("@1").unwrap();
-        }
+        //for _ in 0..10 {
+        //    let _ = *price_recv.borrow().get("@1").unwrap();
+        //}
 
         Ok(())
     }

@@ -10,7 +10,7 @@ use tokio::sync::watch;
 
 use crate::{
     price_data::{perps::PerpsPriceData, spot::SpotPriceData},
-    types::{NameToPriceMap, OiCoinToValueMap},
+    types::{NameToPriceMap, CoinToOiValueMap},
 };
 
 #[derive(Debug)]
@@ -52,9 +52,13 @@ impl Prices {
         Ok(response)
     }
 
-    pub async fn start_sending(&self, sender: watch::Sender<NameToPriceMap>) -> Result<(), Error> {
+    pub async fn start_sending(
+        &self,
+        sender: watch::Sender<NameToPriceMap>,
+    ) -> Result<(), Error> {
         loop {
             let name_to_price_map = self.get_all_price_info().await?.get_name_to_price_map();
+
             sender.send(name_to_price_map)?;
             sleep(std::time::Duration::from_millis(800));
         }
@@ -73,7 +77,7 @@ impl Prices {
 
     pub async fn start_sending_perps_oi(
         &self,
-        sender: watch::Sender<OiCoinToValueMap>,
+        sender: watch::Sender<CoinToOiValueMap>,
     ) -> Result<(), Error> {
         loop {
             let coin_to_oi_value_map = self.get_all_perps_info().await?.get_coin_to_oi_value_map();
@@ -85,7 +89,7 @@ impl Prices {
     pub async fn start_sending_perps_oi_and_price(
         &self,
         price_sender: watch::Sender<NameToPriceMap>,
-        oi_sender: watch::Sender<OiCoinToValueMap>,
+        oi_sender: watch::Sender<CoinToOiValueMap>,
     ) -> Result<(), Error> {
         loop {
             let all_perps_info = self.get_all_perps_info().await?;
@@ -105,7 +109,7 @@ impl Prices {
 
         let response = self
             .client
-            .post(Url::parse("https://api-ui.hyperliquid.xyz/info")?)
+            .post(Url::parse("https://api.hyperliquid-testnet.xyz/info")?)
             .json(&data)
             .send()
             .await?;
