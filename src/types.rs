@@ -34,17 +34,20 @@ pub struct PerpContext {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Price {
-    Spot { price: f64, context: SpotContext },
+    Spot { pair: String, price: f64, context: SpotContext },
     Perp { price: f64, context: PerpContext },
 }
 
 impl Price {
     pub fn new_spot(price: f64, context: SpotContext) -> Self {
+        let pair = format!("{}/{}", context.quote.name, context.base.name);
+
         if price == 0.0 {
-            return Price::Spot { price, context };
+            return Price::Spot { pair, price, context };
         }
 
         Price::Spot {
+            pair,
             price: Self::round_price(price, 8, context.quote.sz_decimals),
             context,
         }
@@ -130,6 +133,13 @@ impl Price {
 
     pub fn to_string(&self) -> String {
         format!("{:?}", self.get_value())
+    }
+
+    pub fn update_price(&mut self, new_price: f64) {
+        match self {
+            Price::Spot { price, .. } => *price = new_price,
+            Price::Perp { price, .. } => *price = new_price,
+        }
     }
 }
 
