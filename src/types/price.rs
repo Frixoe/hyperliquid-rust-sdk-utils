@@ -1,65 +1,53 @@
-use std::{collections::HashMap, fmt};
+use core::fmt;
+use crate::types::context::Context;
 
-use serde::{
-    de::{self, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
-
-pub type PriceIsBuyAndAsset = (f64, bool, String);
-pub type NameToPriceMap = HashMap<String, Price>;
-pub type CoinToOiValueMap = HashMap<String, f64>;
-pub const BOLD_START_ANSI: &str = "\x1b[1m";
-pub const BOLD_END_ANSI: &str = "\x1b[0m";
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SpotContext {
-    pub name: String,
-    pub quote: SpotAssetContext,
-    pub base: SpotAssetContext,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SpotAssetContext {
-    pub sz_decimals: u16,
-    pub wei_decimals: u16,
-    pub name: String,
-    pub index: u16,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct PerpContext {
-    pub name: String,
-    pub sz_decimals: u16,
-}
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum Price {
-    Spot { pair: String, price: f64, context: SpotContext },
-    Perp { price: f64, context: PerpContext },
+    #[default]
+    None,
+    Spot {
+        price: f64,
+        context: Context,
+    },
+    Perp {
+        price: f64,
+        context: Context,
+    },
 }
 
 impl Price {
-    pub fn new_spot(price: f64, context: SpotContext) -> Self {
-        let pair = format!("{}/{}", context.quote.name, context.base.name);
+    pub fn from_context(price: f64, context: &Context) -> Self {
+        match context {
+            Context::Spot { .. } => Price::new_spot(price, context.clone()),
+            Context::Perp { .. } => Price::new_perp(price, context.clone()),
+        }
+    }
+
+    pub fn new_spot(price: f64, context: Context) -> Self {
+        assert!(context.is_spot());
 
         if price == 0.0 {
-            return Price::Spot { pair, price, context };
+            return Price::Spot {
+                price,
+                context,
+            };
         }
 
         Price::Spot {
-            pair,
-            price: Self::round_price(price, 8, context.quote.sz_decimals),
+            price: Self::round_price(price, 8, context.get_sz_decimals()),
             context,
         }
     }
 
-    pub fn new_perp(price: f64, context: PerpContext) -> Self {
+    pub fn new_perp(price: f64, context: Context) -> Self {
+        assert!(context.is_perp());
+
         if price == 0.0 {
             return Price::Perp { price, context };
         }
 
         Price::Perp {
-            price: Self::round_price(price, 6, context.sz_decimals),
+            price: Self::round_price(price, 6, context.get_sz_decimals()),
             context,
         }
     }
@@ -91,6 +79,7 @@ impl Price {
         match self {
             Price::Spot { price, .. } => *price,
             Price::Perp { price, .. } => *price,
+            Price::None => 0.0_f64,
         }
     }
 
@@ -102,13 +91,14 @@ impl Price {
     pub fn get_true_size(&self, size: f64) -> f64 {
         match self {
             Price::Spot { context, .. } => {
-                format!("{:.*}", context.quote.sz_decimals as usize, size)
+                format!("{:.*}", context.get_sz_decimals() as usize, size)
                     .parse::<f64>()
                     .unwrap()
             }
-            Price::Perp { context, .. } => format!("{:.*}", context.sz_decimals as usize, size)
+            Price::Perp { context, .. } => format!("{:.*}", context.get_sz_decimals() as usize, size)
                 .parse::<f64>()
                 .unwrap(),
+            Price::None => 0.0_f64,
         }
     }
 
@@ -126,8 +116,9 @@ impl Price {
 
     pub fn get_true_price_for_asset(&self, price: f64) -> f64 {
         match self {
-            Price::Spot { context, .. } => Self::round_price(price, 8, context.quote.sz_decimals),
-            Price::Perp { context, .. } => Self::round_price(price, 6, context.sz_decimals),
+            Price::Spot { context, .. } => Self::round_price(price, 8, context.get_sz_decimals()),
+            Price::Perp { context, .. } => Self::round_price(price, 6, context.get_sz_decimals()),
+            Price::None => 0.0_f64,
         }
     }
 
@@ -139,6 +130,23 @@ impl Price {
         match self {
             Price::Spot { price, .. } => *price = new_price,
             Price::Perp { price, .. } => *price = new_price,
+            Price::None => (),
+        }
+    }
+
+    pub fn from_new_price(self, new_price: f64) -> Price {
+        match self {
+            Price::Spot { context, .. } => Price::new_spot(new_price, context),
+            Price::Perp { context, .. } => Price::new_perp(new_price, context),
+            Price::None => Price::None,
+        }
+    }
+
+    pub fn get_context(&self) -> &Context {
+        match self {
+            Price::None => panic!("Tried to get context for no price..."),
+            Price::Spot { context, .. } => context,
+            Price::Perp { context, .. } => context,
         }
     }
 }
@@ -152,51 +160,7 @@ impl std::fmt::Display for Price {
             Price::Perp { price, .. } => {
                 writeln!(f, "{}", price)
             }
+            Price::None => writeln!(f, "0.0")
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct Pair {
-    #[serde(deserialize_with = "parse_pair_to_name")]
-    pub name: String,
-    pub size: f64,
-}
-
-impl Pair {
-    pub fn convert_to_name(&self, pair_to_name_map: &HashMap<String, String>) -> Self {
-        Pair {
-            name: pair_to_name_map
-                .get(&self.name)
-                .unwrap_or(&"".to_string())
-                .to_string(),
-            size: self.size,
-        }
-    }
-}
-
-// TODO: This is for the future. Need to deserialize from pair to name here.
-fn parse_pair_to_name<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct StringToStringVisitor;
-
-    impl<'de> Visitor<'de> for StringToStringVisitor {
-        type Value = String;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a pair with a corresponding name in the API")
-        }
-
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            // TODO: Deserialize into the actual name of the pair
-            Ok(value.to_string())
-        }
-    }
-
-    deserializer.deserialize_str(StringToStringVisitor)
 }

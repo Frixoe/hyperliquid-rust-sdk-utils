@@ -6,7 +6,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::types::{NameToPriceMap, PerpContext, Price};
+use crate::types::{Context, NameToPriceMap, Price};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PerpsMeta {
@@ -32,7 +32,7 @@ impl PerpsMeta {
                 universe[i].name.clone(),
                 Price::new_perp(
                     prices[&universe_data.name],
-                    PerpContext {
+                    Context::Perp {
                         name: universe[i].name.clone(),
                         sz_decimals: universe_data.sz_decimals,
                     },

@@ -4,7 +4,7 @@ use ethers::types::H128;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
-use crate::types::{NameToPriceMap, Price, SpotAssetContext, SpotContext};
+use crate::types::{Context, NameToPriceMap, Price, SpotAssetContext};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SpotMeta {
@@ -33,6 +33,13 @@ struct UniverseTokensData {
 }
 
 impl SpotMeta {
+    fn get_index_to_name_map(&self) -> HashMap<u16, String> {
+        self.tokens
+            .iter()
+            .map(|info| (info.index, info.name.clone()))
+            .collect()
+    }
+
     pub fn get_spot_price_data(self, prices: HashMap<String, f64>) -> SpotPriceData {
         let res: NameToPriceMap = self.universe
             .iter()
@@ -77,7 +84,7 @@ impl SpotMeta {
                     uni.name.clone(),
                     Price::new_spot(
                         price,
-                        SpotContext {
+                        Context::Spot {
                             name: uni.name.clone(),
                             quote: quote_spot_context,
                             base: base_spot_context,
@@ -102,7 +109,7 @@ pub struct SpotPriceData {
 
 impl SpotPriceData {
     pub fn get_pair_to_raw_price_map(&self) -> HashMap<String, f64> {
-        let index_to_name: HashMap<u16, String> = self.get_index_to_name_map();
+        let index_to_name: HashMap<u16, String> = self.meta.get_index_to_name_map();
 
         self.meta
             .universe
@@ -140,7 +147,7 @@ impl SpotPriceData {
     }
 
     pub fn get_pair_to_name_map(&self) -> HashMap<String, String> {
-        let index_to_name: HashMap<u16, String> = self.get_index_to_name_map();
+        let index_to_name: HashMap<u16, String> = self.meta.get_index_to_name_map();
 
         self.meta
             .universe
@@ -168,14 +175,6 @@ impl SpotPriceData {
     }
 
     // 1 -> "LICK" not 1 -> "@x"
-    fn get_index_to_name_map(&self) -> HashMap<u16, String> {
-        self.meta
-            .tokens
-            .iter()
-            .map(|info| (info.index, info.name.clone()))
-            .collect()
-    }
-
     pub fn update(&mut self, price_map: HashMap<String, f64>) {
         for (name, price) in self.map.iter_mut() {
             price.update_price(price_map[name])
@@ -183,7 +182,7 @@ impl SpotPriceData {
     }
 
     pub fn get_price_from_pair(&self, pair: String) -> f64 {
-        let index_to_name: HashMap<u16, String> = self.get_index_to_name_map();
+        let index_to_name: HashMap<u16, String> = self.meta.get_index_to_name_map();
 
         self.meta
             .universe
