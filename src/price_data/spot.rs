@@ -4,7 +4,7 @@ use ethers::types::H128;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
-use crate::types::{Context, NameToPriceMap, Price, SpotAssetContext};
+use crate::types::{Meta, NameToPriceMap, Price, SpotAssetMeta};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SpotMeta {
@@ -46,12 +46,12 @@ impl SpotMeta {
             .map(|uni| {
                 let price = prices[&uni.name];
 
-                let quote_spot_context: SpotAssetContext = self
+                let quote_spot_context: SpotAssetMeta = self
                     .tokens
                     .iter()
                     .find_map(|token| {
                         if token.index == uni.tokens[0] {
-                            Some(SpotAssetContext {
+                            Some(SpotAssetMeta {
                                 sz_decimals: token.sz_decimals,
                                 wei_decimals: token.wei_decimals,
                                 index: token.index,
@@ -63,12 +63,12 @@ impl SpotMeta {
                     })
                     .unwrap();
 
-                let base_spot_context: SpotAssetContext = self
+                let base_spot_context: SpotAssetMeta = self
                     .tokens
                     .iter()
                     .find_map(|token| {
                         if token.index == uni.tokens[1] {
-                            Some(SpotAssetContext {
+                            Some(SpotAssetMeta {
                                 sz_decimals: token.sz_decimals,
                                 wei_decimals: token.wei_decimals,
                                 index: token.index,
@@ -84,7 +84,7 @@ impl SpotMeta {
                     uni.name.clone(),
                     Price::new_spot(
                         price,
-                        Context::Spot {
+                        Meta::Spot {
                             name: uni.name.clone(),
                             quote: quote_spot_context,
                             base: base_spot_context,

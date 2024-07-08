@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::types::context::Context;
+use crate::types::Meta;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Price {
@@ -7,48 +7,48 @@ pub enum Price {
     None,
     Spot {
         price: f64,
-        context: Context,
+        meta: Meta,
     },
     Perp {
         price: f64,
-        context: Context,
+        meta: Meta,
     },
 }
 
 impl Price {
-    pub fn from_context(price: f64, context: &Context) -> Self {
-        match context {
-            Context::Spot { .. } => Price::new_spot(price, context.clone()),
-            Context::Perp { .. } => Price::new_perp(price, context.clone()),
+    pub fn from_meta(price: f64, meta: &Meta) -> Self {
+        match meta {
+            Meta::Spot { .. } => Price::new_spot(price, meta.clone()),
+            Meta::Perp { .. } => Price::new_perp(price, meta.clone()),
         }
     }
 
-    pub fn new_spot(price: f64, context: Context) -> Self {
-        assert!(context.is_spot());
+    pub fn new_spot(price: f64, meta: Meta) -> Self {
+        assert!(meta.is_spot());
 
         if price == 0.0 {
             return Price::Spot {
                 price,
-                context,
+                meta,
             };
         }
 
         Price::Spot {
-            price: Self::round_price(price, 8, context.get_sz_decimals()),
-            context,
+            price: Self::round_price(price, 8, meta.get_sz_decimals()),
+            meta,
         }
     }
 
-    pub fn new_perp(price: f64, context: Context) -> Self {
-        assert!(context.is_perp());
+    pub fn new_perp(price: f64, meta: Meta) -> Self {
+        assert!(meta.is_perp());
 
         if price == 0.0 {
-            return Price::Perp { price, context };
+            return Price::Perp { price, meta };
         }
 
         Price::Perp {
-            price: Self::round_price(price, 6, context.get_sz_decimals()),
-            context,
+            price: Self::round_price(price, 6, meta.get_sz_decimals()),
+            meta,
         }
     }
 
@@ -90,12 +90,12 @@ impl Price {
     /// Formats the size according to the asset's sz_decimals and any other info required
     pub fn get_true_size(&self, size: f64) -> f64 {
         match self {
-            Price::Spot { context, .. } => {
-                format!("{:.*}", context.get_sz_decimals() as usize, size)
+            Price::Spot { meta, .. } => {
+                format!("{:.*}", meta.get_sz_decimals() as usize, size)
                     .parse::<f64>()
                     .unwrap()
             }
-            Price::Perp { context, .. } => format!("{:.*}", context.get_sz_decimals() as usize, size)
+            Price::Perp { meta, .. } => format!("{:.*}", meta.get_sz_decimals() as usize, size)
                 .parse::<f64>()
                 .unwrap(),
             Price::None => 0.0_f64,
@@ -116,8 +116,8 @@ impl Price {
 
     pub fn get_true_price_for_asset(&self, price: f64) -> f64 {
         match self {
-            Price::Spot { context, .. } => Self::round_price(price, 8, context.get_sz_decimals()),
-            Price::Perp { context, .. } => Self::round_price(price, 6, context.get_sz_decimals()),
+            Price::Spot { meta, .. } => Self::round_price(price, 8, meta.get_sz_decimals()),
+            Price::Perp { meta, .. } => Self::round_price(price, 6, meta.get_sz_decimals()),
             Price::None => 0.0_f64,
         }
     }
@@ -136,17 +136,17 @@ impl Price {
 
     pub fn from_new_price(self, new_price: f64) -> Price {
         match self {
-            Price::Spot { context, .. } => Price::new_spot(new_price, context),
-            Price::Perp { context, .. } => Price::new_perp(new_price, context),
+            Price::Spot { meta, .. } => Price::new_spot(new_price, meta),
+            Price::Perp { meta, .. } => Price::new_perp(new_price, meta),
             Price::None => Price::None,
         }
     }
 
-    pub fn get_context(&self) -> &Context {
+    pub fn get_meta(&self) -> &Meta {
         match self {
-            Price::None => panic!("Tried to get context for no price..."),
-            Price::Spot { context, .. } => context,
-            Price::Perp { context, .. } => context,
+            Price::None => panic!("Tried to get meta for no price..."),
+            Price::Spot { meta, .. } => meta,
+            Price::Perp { meta, .. } => meta,
         }
     }
 }
