@@ -174,7 +174,6 @@ impl SpotPriceData {
             .collect()
     }
 
-    // 1 -> "LICK" not 1 -> "@x"
     pub fn update(&mut self, price_map: HashMap<String, f64>) {
         for (name, price) in self.map.iter_mut() {
             price.update_price(price_map[name])
