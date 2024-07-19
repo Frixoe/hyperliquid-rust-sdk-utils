@@ -83,6 +83,22 @@ impl Price {
         }
     }
 
+    pub fn get_value_after_slippage(&self, slippage: f64, is_buy: bool) -> f64 {
+        let price = self.get_value();
+
+        let after_slippage = if is_buy {
+            price * (1.0 + slippage)
+        } else {
+            price * (1.0 - slippage)
+        };
+
+        match self {
+            Price::None => 0.0_f64,
+            Price::Spot { meta, .. } => Self::round_price(after_slippage, 8, meta.get_sz_decimals()),
+            Price::Perp { meta, .. } => Self::round_price(after_slippage, 6, meta.get_sz_decimals()),
+        }
+    }
+
     /// .
     ///
     /// # Gets True Size
@@ -128,8 +144,8 @@ impl Price {
 
     pub fn update_price(&mut self, new_price: f64) {
         match self {
-            Price::Spot { price, .. } => *price = new_price,
-            Price::Perp { price, .. } => *price = new_price,
+            Price::Spot { price, meta } => *price = Self::round_price(new_price, 8, meta.get_sz_decimals()),
+            Price::Perp { price, meta } => *price = Self::round_price(new_price, 6, meta.get_sz_decimals()),
             Price::None => (),
         }
     }

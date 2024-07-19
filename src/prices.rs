@@ -105,6 +105,7 @@ impl Prices {
         let response = self
             .client
             .post(Url::parse("https://api-ui.hyperliquid.xyz/info")?)
+            //.post(Url::parse("https://api.hyperliquid-testnet.xyz/info")?)
             .json(&data)
             .send()
             .await?;
