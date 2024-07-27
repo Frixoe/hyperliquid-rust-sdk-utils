@@ -198,11 +198,17 @@ impl Prices {
             .await?
             .get_spot_price_data(self.get_all_prices().await?))
     }
+
+    pub async fn unsub(&mut self) -> anyhow::Result<()> {
+        Ok(self.info_client.unsubscribe(self.sub_id).await?)
+    }
 }
 
 pub async fn start_perps_sender_task(
     mut prices: Prices,
 ) -> anyhow::Result<watch::Receiver<NameToPriceMap>> {
+    // TODO: Start returning an Arc<Mutex<watch::Receiver<..>>> so that you can create a new
+    // connection efficiently from within the tokio task and update across all threads.
     let (price_sender, price_recv) =
         watch::channel(prices.get_perps_price_data().await?.map.clone());
 

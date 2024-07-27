@@ -7,11 +7,7 @@ use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{EnvFilter, Registry};
 
-pub fn get_regular_subscriber(
-    env_filter: String,
-) -> impl Subscriber + Send + Sync
-where
-{
+pub fn get_regular_subscriber(env_filter: String) -> impl Subscriber + Send + Sync {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
 
