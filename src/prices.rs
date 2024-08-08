@@ -89,6 +89,8 @@ impl Prices {
 
                 let (sender, receiver) = unbounded_channel();
 
+                sleep(std::time::Duration::from_secs(2));
+
                 self.sub_id = self
                     .info_client
                     .subscribe(Subscription::AllMids, sender)
@@ -125,6 +127,8 @@ impl Prices {
                 self.info_client.unsubscribe(self.sub_id).await?;
 
                 let (sender, receiver) = unbounded_channel();
+
+                sleep(std::time::Duration::from_secs(2));
 
                 self.sub_id = self
                     .info_client
