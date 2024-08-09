@@ -8,9 +8,10 @@ use reqwest::{
 };
 use serde_json::json;
 use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver},
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     watch,
 };
+use tracing::error;
 
 use crate::{
     price_data::{
@@ -23,6 +24,7 @@ use crate::{
 pub struct Prices {
     client: Client,
     info_client: InfoClient,
+    price_sender: UnboundedSender<Message>,
     price_receiver: UnboundedReceiver<Message>,
     sub_id: u32,
 }
@@ -33,7 +35,7 @@ impl Prices {
 
         let (sender, receiver) = unbounded_channel();
         let sub_id = info_client
-            .subscribe(Subscription::AllMids, sender)
+            .subscribe(Subscription::AllMids, sender.clone())
             .await
             .unwrap();
 
@@ -52,6 +54,7 @@ impl Prices {
             client,
             info_client,
             price_receiver: receiver,
+            price_sender: sender,
             sub_id,
         })
     }
@@ -85,19 +88,21 @@ impl Prices {
         // Every 20 hours
         while i < 100_000 {
             if i >= 99_999 {
-                self.info_client.unsubscribe(self.sub_id).await?;
+                match self.info_client.unsubscribe(self.sub_id).await {
+                    Ok(_) => {
+                        sleep(std::time::Duration::from_secs(2));
 
-                let (sender, receiver) = unbounded_channel();
-
-                sleep(std::time::Duration::from_secs(2));
-
-                self.sub_id = self
-                    .info_client
-                    .subscribe(Subscription::AllMids, sender)
-                    .await
-                    .unwrap();
-
-                self.price_receiver = receiver;
+                        self.sub_id = self
+                            .info_client
+                            .subscribe(Subscription::AllMids, self.price_sender.clone())
+                            .await
+                            .unwrap();
+                    }
+                    Err(err) => {
+                        error!("Received an error while unsubscribing from spot channel: {err:?}");
+                        return Err(err.into());
+                    }
+                }
 
                 i = 0;
             }
@@ -124,19 +129,21 @@ impl Prices {
         // Every 20 hours
         while i < 100_000 {
             if i >= 99_999 {
-                self.info_client.unsubscribe(self.sub_id).await?;
+                match self.info_client.unsubscribe(self.sub_id).await {
+                    Ok(_) => {
+                        sleep(std::time::Duration::from_secs(2));
 
-                let (sender, receiver) = unbounded_channel();
-
-                sleep(std::time::Duration::from_secs(2));
-
-                self.sub_id = self
-                    .info_client
-                    .subscribe(Subscription::AllMids, sender)
-                    .await
-                    .unwrap();
-
-                self.price_receiver = receiver;
+                        self.sub_id = self
+                            .info_client
+                            .subscribe(Subscription::AllMids, self.price_sender.clone())
+                            .await
+                            .unwrap();
+                    }
+                    Err(err) => {
+                        error!("Received an error while unsubscribing from perps channel: {err:?}");
+                        return Err(err.into());
+                    }
+                }
 
                 i = 0;
             }
