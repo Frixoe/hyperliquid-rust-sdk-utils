@@ -11,7 +11,7 @@ use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver},
     watch,
 };
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     price_data::{
@@ -85,25 +85,6 @@ impl Prices {
 
         // Every 20 hours
         while i < 100_000 {
-            // if i >= 99_999 {
-            //     match self.info_client.unsubscribe(self.sub_id).await {
-            //         Ok(_) => {
-            //             sleep(std::time::Duration::from_secs(2));
-
-            //             self.sub_id = self
-            //                 .info_client
-            //                 .subscribe(Subscription::AllMids, self.price_sender.clone())
-            //                 .await
-            //                 .unwrap();
-            //         }
-            //         Err(err) => {
-            //             error!("Received an error while unsubscribing from spot channel: {err:?}");
-            //             return Err(err.into());
-            //         }
-            //     }
-
-            //     i = 0;
-            // }
             spot_price_data.update(self.get_all_prices().await?);
             let name_to_price_map = spot_price_data.map.clone();
 
@@ -126,25 +107,6 @@ impl Prices {
 
         // Every 20 hours
         while i < 100_000 {
-            // if i >= 99_999 {
-            //     match self.info_client.unsubscribe(self.sub_id).await {
-            //         Ok(_) => {
-            //             sleep(std::time::Duration::from_secs(2));
-
-            //             self.sub_id = self
-            //                 .info_client
-            //                 .subscribe(Subscription::AllMids, self.price_sender.clone())
-            //                 .await
-            //                 .unwrap();
-            //         }
-            //         Err(err) => {
-            //             error!("Received an error while unsubscribing from perps channel: {err:?}");
-            //             return Err(err.into());
-            //         }
-            //     }
-
-            //     i = 0;
-            // }
             perps_price_data.update(self.get_all_prices().await?);
 
             let name_to_price_map = perps_price_data.map.clone();
@@ -237,15 +199,19 @@ pub async fn start_perps_sender_task() -> anyhow::Result<watch::Receiver<NameToP
 
     tokio::spawn(async move {
         let p_s = price_sender;
+        info!("perps_sender_task: Starting...");
         loop {
             let mut new_prices = Prices::new().await.unwrap();
             match new_prices.start_sending_perps(p_s.clone()).await {
                 Ok(it) => it,
-                Err(_) => {
-                    let _ = new_prices.unsub().await;
-                    sleep(std::time::Duration::from_secs(5));
+                Err(err) => {
+                    error!("perps_sender_task: Error: {err:?}");
                 }
             };
+            info!("perps_sender_task: Resetting...");
+
+            let _ = new_prices.unsub().await;
+            sleep(std::time::Duration::from_secs(5));
         }
     });
 
@@ -258,15 +224,19 @@ pub async fn start_spot_sender_task() -> anyhow::Result<watch::Receiver<NameToPr
 
     tokio::spawn(async move {
         let p_s = price_sender;
+        info!("spot_sender_task: Starting...");
         loop {
             let mut new_prices = Prices::new().await.unwrap();
             match new_prices.start_sending(p_s.clone()).await {
                 Ok(it) => it,
-                Err(_) => {
-                    let _ = new_prices.unsub().await;
-                    sleep(std::time::Duration::from_secs(5));
+                Err(err) => {
+                    error!("spot_sender_task: Error: {err:?}");
                 }
             };
+            info!("spot_sender_task: Resetting...");
+
+            let _ = new_prices.unsub().await;
+            sleep(std::time::Duration::from_secs(5));
         }
     });
 
