@@ -140,34 +140,29 @@ impl Prices {
     }
 
     pub async fn get_all_prices(&mut self) -> anyhow::Result<HashMap<String, f64>> {
-        let all_prices: HashMap<String, f64> =
-            match self.price_receiver.recv().await {
-                Some(msg) => match msg {
-                    Message::NoData => {
-                        error!("Couldn't recieve price data");
-                        return Err(anyhow::anyhow!("No data found"));
-                    }
-                    Message::HyperliquidError(err) => {
-                        error!("Hyperliquid error while getting price data: {err:?}");
-                        return Err(anyhow::anyhow!("Hyperliquid error found"));
-                    }
-                    Message::AllMids(all_mids) => {
-                        all_mids
-                            .data
-                            .mids
-                            .into_iter()
-                            .map(|(k, v)| (k, v.parse::<f64>().unwrap_or(0.0_f64)))
-                            .collect()
-                    }
-                    s => {
-                        error!("Got something else: {s:?}");
-                        HashMap::new()
-                    }
+        let all_prices: HashMap<String, f64> = match self.price_receiver.recv().await {
+            Some(msg) => match msg {
+                Message::NoData => {
+                    error!("Couldn't recieve price data");
+                    return Err(anyhow::anyhow!("No data found"));
                 }
-                None => {
+                Message::HyperliquidError(err) => {
+                    error!("Hyperliquid error while getting price data: {err:?}");
+                    return Err(anyhow::anyhow!("Hyperliquid error found"));
+                }
+                Message::AllMids(all_mids) => all_mids
+                    .data
+                    .mids
+                    .into_iter()
+                    .map(|(k, v)| (k, v.parse::<f64>().unwrap_or(0.0_f64)))
+                    .collect(),
+                s => {
+                    error!("Got something else: {s:?}");
                     HashMap::new()
                 }
-            };
+            },
+            None => HashMap::new(),
+        };
 
         Ok(all_prices)
     }
@@ -194,8 +189,7 @@ impl Prices {
 pub async fn start_perps_sender_task() -> anyhow::Result<watch::Receiver<NameToPriceMap>> {
     // TODO: Start returning an Arc<Mutex<watch::Receiver<..>>> so that you can create a new
     // connection efficiently from within the tokio task and update across all threads.
-    let (price_sender, price_recv) =
-        watch::channel(HashMap::<String, Price>::new());
+    let (price_sender, price_recv) = watch::channel(HashMap::<String, Price>::new());
 
     tokio::spawn(async move {
         let p_s = price_sender;
@@ -219,8 +213,7 @@ pub async fn start_perps_sender_task() -> anyhow::Result<watch::Receiver<NameToP
 }
 
 pub async fn start_spot_sender_task() -> anyhow::Result<watch::Receiver<NameToPriceMap>> {
-    let (price_sender, price_recv) =
-        watch::channel(HashMap::<String, Price>::new());
+    let (price_sender, price_recv) = watch::channel(HashMap::<String, Price>::new());
 
     tokio::spawn(async move {
         let p_s = price_sender;
