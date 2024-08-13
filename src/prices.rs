@@ -193,8 +193,8 @@ pub async fn start_perps_sender_task() -> anyhow::Result<watch::Receiver<NameToP
 
     tokio::spawn(async move {
         let p_s = price_sender;
-        info!("perps_sender_task: Starting...");
         loop {
+            info!("perps_sender_task: Starting...");
             let mut new_prices = Prices::new().await.unwrap();
             match new_prices.start_sending_perps(p_s.clone()).await {
                 Ok(it) => it,
@@ -217,8 +217,8 @@ pub async fn start_spot_sender_task() -> anyhow::Result<watch::Receiver<NameToPr
 
     tokio::spawn(async move {
         let p_s = price_sender;
-        info!("spot_sender_task: Starting...");
         loop {
+            info!("spot_sender_task: Starting...");
             let mut new_prices = Prices::new().await.unwrap();
             match new_prices.start_sending(p_s.clone()).await {
                 Ok(it) => it,
