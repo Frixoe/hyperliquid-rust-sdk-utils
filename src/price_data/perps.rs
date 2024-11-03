@@ -65,7 +65,7 @@ struct UniverseData {
     pub name: String,
     pub sz_decimals: u16,
     pub max_leverage: u16,
-    pub only_isolated: bool,
+    pub only_isolated: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
