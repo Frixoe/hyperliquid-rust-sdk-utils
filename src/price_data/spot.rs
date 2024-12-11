@@ -41,7 +41,8 @@ impl SpotMeta {
     }
 
     pub fn get_spot_price_data(self, prices: HashMap<String, f64>) -> SpotPriceData {
-        let res: NameToPriceMap = self.universe
+        let res: NameToPriceMap = self
+            .universe
             .iter()
             .map(|uni| {
                 let price = prices[&uni.name];
@@ -96,7 +97,7 @@ impl SpotMeta {
 
         SpotPriceData {
             meta: self,
-            map: res
+            map: res,
         }
     }
 }
@@ -104,7 +105,7 @@ impl SpotMeta {
 #[derive(Debug, Clone)]
 pub struct SpotPriceData {
     meta: SpotMeta,
-    pub map: NameToPriceMap
+    pub map: NameToPriceMap,
 }
 
 impl SpotPriceData {
