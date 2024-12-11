@@ -4,3 +4,8 @@ This crate is a utility built on top of the [hyperliquid-rust-sdk](https://githu
 Features:
 - Parsing the data coming from the API and returning it in a much more readable way.
 - Provides helper functions to create a streaming channel allowing you to stream perps and spot prices.
+
+## Add to your project
+```bash
+cargo add hyperliquid-rust-sdk-utils
+```
