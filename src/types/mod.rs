@@ -1,7 +1,10 @@
-mod price;
 mod meta;
-pub use price::*;
+mod orderbook;
+mod price;
+
 pub use meta::*;
+pub use orderbook::*;
+pub use price::*;
 
 use std::{collections::HashMap, fmt};
 
