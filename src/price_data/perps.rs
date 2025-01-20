@@ -35,14 +35,15 @@ impl PerpsMeta {
                     Meta::Perp {
                         name: universe[i].name.clone(),
                         sz_decimals: universe_data.sz_decimals,
+                        max_leverage: universe[i].max_leverage,
+                        only_isolated: universe[i].only_isolated,
+                        is_delisted: universe[i].is_delisted,
                     },
                 ),
             );
         }
 
-        PerpsPriceData {
-            map: result,
-        }
+        PerpsPriceData { map: result }
     }
 }
 
@@ -66,6 +67,7 @@ struct UniverseData {
     pub sz_decimals: u16,
     pub max_leverage: u16,
     pub only_isolated: Option<bool>,
+    pub is_delisted: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

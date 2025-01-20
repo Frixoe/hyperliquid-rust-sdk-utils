@@ -1,4 +1,6 @@
-#[derive(Clone, PartialEq, Debug,)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Meta {
     Spot {
         name: String,
@@ -8,7 +10,10 @@ pub enum Meta {
     Perp {
         name: String,
         sz_decimals: u16,
-    }
+        max_leverage: u16,
+        only_isolated: Option<bool>,
+        is_delisted: Option<bool>,
+    },
 }
 
 impl Meta {
@@ -41,7 +46,7 @@ impl Meta {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, Default)]
+#[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct SpotAssetMeta {
     pub sz_decimals: u16,
     pub wei_decimals: u16,

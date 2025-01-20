@@ -1677,28 +1677,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyperliquid-rust-sdk-utils"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "env_logger 0.9.3",
- "ethers",
- "futures",
- "hyperliquid_rust_sdk",
- "log",
- "reqwest 0.12.5",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-bunyan-formatter",
- "tracing-log 0.2.0",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "hyperliquid_rust_sdk"
 version = "0.5.0"
 source = "git+https://github.com/hyperliquid-dex/hyperliquid-rust-sdk.git#cff25ea5c62cbdba9c2175e3cad77a155bdaa74d"
@@ -1720,6 +1698,28 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "uuid 1.9.1",
+]
+
+[[package]]
+name = "hyperliquid_rust_sdk_utils"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "env_logger 0.9.3",
+ "ethers",
+ "futures",
+ "hyperliquid_rust_sdk",
+ "log",
+ "reqwest 0.12.5",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-bunyan-formatter",
+ "tracing-log 0.2.0",
+ "tracing-subscriber",
 ]
 
 [[package]]

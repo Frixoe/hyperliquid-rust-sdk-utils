@@ -1,7 +1,9 @@
-use core::fmt;
-use crate::types::Meta;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Default)]
+use crate::types::Meta;
+use core::fmt;
+
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub enum Price {
     #[default]
     None,
@@ -27,10 +29,7 @@ impl Price {
         assert!(meta.is_spot());
 
         if price == 0.0 {
-            return Price::Spot {
-                price,
-                meta,
-            };
+            return Price::Spot { price, meta };
         }
 
         Price::Spot {
@@ -94,8 +93,12 @@ impl Price {
 
         match self {
             Price::None => 0.0_f64,
-            Price::Spot { meta, .. } => Self::round_price(after_slippage, 8, meta.get_sz_decimals()),
-            Price::Perp { meta, .. } => Self::round_price(after_slippage, 6, meta.get_sz_decimals()),
+            Price::Spot { meta, .. } => {
+                Self::round_price(after_slippage, 8, meta.get_sz_decimals())
+            }
+            Price::Perp { meta, .. } => {
+                Self::round_price(after_slippage, 6, meta.get_sz_decimals())
+            }
         }
     }
 
@@ -106,11 +109,9 @@ impl Price {
     /// Formats the size according to the asset's sz_decimals and any other info required
     pub fn get_true_size(&self, size: f64) -> f64 {
         match self {
-            Price::Spot { meta, .. } => {
-                format!("{:.*}", meta.get_sz_decimals() as usize, size)
-                    .parse::<f64>()
-                    .unwrap()
-            }
+            Price::Spot { meta, .. } => format!("{:.*}", meta.get_sz_decimals() as usize, size)
+                .parse::<f64>()
+                .unwrap(),
             Price::Perp { meta, .. } => format!("{:.*}", meta.get_sz_decimals() as usize, size)
                 .parse::<f64>()
                 .unwrap(),
@@ -144,8 +145,12 @@ impl Price {
 
     pub fn update_price(&mut self, new_price: f64) {
         match self {
-            Price::Spot { price, meta } => *price = Self::round_price(new_price, 8, meta.get_sz_decimals()),
-            Price::Perp { price, meta } => *price = Self::round_price(new_price, 6, meta.get_sz_decimals()),
+            Price::Spot { price, meta } => {
+                *price = Self::round_price(new_price, 8, meta.get_sz_decimals())
+            }
+            Price::Perp { price, meta } => {
+                *price = Self::round_price(new_price, 6, meta.get_sz_decimals())
+            }
             Price::None => (),
         }
     }
@@ -176,7 +181,7 @@ impl std::fmt::Display for Price {
             Price::Perp { price, .. } => {
                 writeln!(f, "{}", price)
             }
-            Price::None => writeln!(f, "0.0")
+            Price::None => writeln!(f, "0.0"),
         }
     }
 }
