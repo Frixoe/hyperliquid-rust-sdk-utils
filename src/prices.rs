@@ -1,6 +1,6 @@
 use std::{collections::HashMap, thread::sleep};
 
-use anyhow::Error;
+use anyhow::{Context, Error};
 use hyperliquid_rust_sdk::{BaseUrl, InfoClient, Message, Subscription};
 use reqwest::{
     header::{HeaderMap, HeaderValue, CONTENT_TYPE},
@@ -36,7 +36,7 @@ impl Prices {
         let sub_id = info_client
             .subscribe(Subscription::AllMids, sender.clone())
             .await
-            .unwrap();
+            .context("Couldn't get subscriptions id")?;
 
         let mut headers = HeaderMap::new();
 
@@ -195,7 +195,17 @@ pub async fn start_perps_sender_task() -> anyhow::Result<watch::Receiver<NameToP
         let p_s = price_sender;
         loop {
             info!("perps_sender_task: Starting...");
-            let mut new_prices = Prices::new().await.unwrap();
+
+            let mut new_prices = match Prices::new().await {
+                Ok(p) => p,
+                Err(e) => {
+                    error!("Error while getting Prices: {e:?}");
+                    error!("Sleeping for 5 secs and restarting...");
+                    sleep(std::time::Duration::from_secs(5));
+                    continue;
+                }
+            };
+
             match new_prices.start_sending_perps(p_s.clone()).await {
                 Ok(it) => it,
                 Err(err) => {
@@ -219,7 +229,17 @@ pub async fn start_spot_sender_task() -> anyhow::Result<watch::Receiver<NameToPr
         let p_s = price_sender;
         loop {
             info!("spot_sender_task: Starting...");
-            let mut new_prices = Prices::new().await.unwrap();
+
+            let mut new_prices = match Prices::new().await {
+                Ok(p) => p,
+                Err(e) => {
+                    error!("Error while getting Prices: {e:?}");
+                    error!("Sleeping for 5 secs and restarting...");
+                    sleep(std::time::Duration::from_secs(5));
+                    continue;
+                }
+            };
+
             match new_prices.start_sending(p_s.clone()).await {
                 Ok(it) => it,
                 Err(err) => {
