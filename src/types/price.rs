@@ -131,10 +131,15 @@ impl Price {
         self.get_true_size(ad_size)
     }
 
-    pub fn get_true_price_for_asset(&self, price: f64) -> f64 {
+    /// Returns the true price for the asset, rounded to the correct number of decimals
+    pub fn get_true_price_for_asset(&self) -> f64 {
         match self {
-            Price::Spot { meta, .. } => Self::round_price(price, 8, meta.get_sz_decimals()),
-            Price::Perp { meta, .. } => Self::round_price(price, 6, meta.get_sz_decimals()),
+            Price::Spot { meta, .. } => {
+                Self::round_price(self.get_value(), 8, meta.get_sz_decimals())
+            }
+            Price::Perp { meta, .. } => {
+                Self::round_price(self.get_value(), 6, meta.get_sz_decimals())
+            }
             Price::None => 0.0_f64,
         }
     }
