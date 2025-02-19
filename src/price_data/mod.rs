@@ -1,2 +1,2 @@
-pub mod spot;
 pub mod perps;
+pub mod spot;

@@ -1,7 +1,7 @@
-mod price;
 mod meta;
-pub use price::*;
+mod price;
 pub use meta::*;
+pub use price::*;
 
 use std::{collections::HashMap, fmt};
 
