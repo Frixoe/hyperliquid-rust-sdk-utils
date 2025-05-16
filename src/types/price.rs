@@ -59,11 +59,12 @@ impl Price {
         let max_decimal_places = max_decimals - sz_decimals;
 
         // Calculate needed decimal places to maintain 5 significant digits
-        let needed_decimal_places = (significant_digits - order_of_magnitude - 1) as u16;
+        let needed_decimal_places = significant_digits - order_of_magnitude - 1;
+        let needed_decimal_places = if needed_decimal_places < 0 { 0 } else { needed_decimal_places };
 
         // Determine actual decimal places, considering the maximum limit
-        let actual_decimal_places = if needed_decimal_places > max_decimal_places {
-            max_decimal_places
+        let actual_decimal_places = if needed_decimal_places > max_decimal_places as i32 {
+            max_decimal_places as i32
         } else {
             needed_decimal_places
         };
