@@ -60,7 +60,11 @@ impl Price {
 
         // Calculate needed decimal places to maintain 5 significant digits
         let needed_decimal_places = significant_digits - order_of_magnitude - 1;
-        let needed_decimal_places = if needed_decimal_places < 0 { 0 } else { needed_decimal_places };
+        let needed_decimal_places = if needed_decimal_places < 0 {
+            0
+        } else {
+            needed_decimal_places
+        };
 
         // Determine actual decimal places, considering the maximum limit
         let actual_decimal_places = if needed_decimal_places > max_decimal_places as i32 {
@@ -129,6 +133,11 @@ impl Price {
     /// formatted size
     pub fn get_asset_denom_size(&self, size: f64) -> f64 {
         let ad_size = size / self.get_value();
+        self.get_true_size(ad_size)
+    }
+
+    pub fn get_asset_denom_size_at_price(&self, size: f64, price: f64) -> f64 {
+        let ad_size = size / price;
         self.get_true_size(ad_size)
     }
 
